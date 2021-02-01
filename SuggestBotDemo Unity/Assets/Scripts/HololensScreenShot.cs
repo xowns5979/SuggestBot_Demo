@@ -14,6 +14,8 @@ public class HololensScreenShot : MonoBehaviour
     delegate void KeywordAction(PhraseRecognizedEventArgs args);
     Dictionary<string, KeywordAction> keywordCollection;
 
+    public bool repeat = true;
+
     System.Diagnostics.Stopwatch sw;
     // Start is called before the first frame update
     void Start()
@@ -27,14 +29,12 @@ public class HololensScreenShot : MonoBehaviour
         keywordRecognizer.Start();
     }
 
-
     private void KeywordRecognizer_OnPhraseRecognized(PhraseRecognizedEventArgs args)
     {
         KeywordAction keywordAction;
         if (keywordCollection.TryGetValue(args.text, out keywordAction))
             keywordAction.Invoke(args);
     }
-
     void TakePicture(PhraseRecognizedEventArgs prea)
     {
         sw.Reset();
@@ -42,65 +42,76 @@ public class HololensScreenShot : MonoBehaviour
         Debug.Log("sw1 - " + sw.ElapsedMilliseconds + "ms");
 
         // 1. PhotoCapture 객체 생성
-        PhotoCapture.CreateAsync(false, delegate (PhotoCapture captureObject) {
+        PhotoCapture.CreateAsync(false, OnPhotoCaptureCreated);
+    }
 
-            // 2. CameraParameter 설정
-            Debug.Log("sw2 - " + sw.ElapsedMilliseconds + "ms");
+    void OnPhotoCaptureCreated(PhotoCapture captureObject)
+    {
+        // 2. CameraParameter 설정
+        Debug.Log("sw2 - " + sw.ElapsedMilliseconds + "ms");
 
-            photoCaptureObject = captureObject;
-            CameraParameters c = new CameraParameters();
-            c.hologramOpacity = 0.0f;
-            //c.cameraResolutionWidth = 3094;     // Hololens 2 default resolution
-            //c.cameraResolutionHeight = 2196;    // Hololens 2 default resolution
-            c.cameraResolutionWidth = 640;
-            c.cameraResolutionHeight = 360;
-            c.pixelFormat = CapturePixelFormat.BGRA32;
-            Debug.Log("sw3 - " + sw.ElapsedMilliseconds + "ms");
+        photoCaptureObject = captureObject;
+        CameraParameters c = new CameraParameters();
+        c.hologramOpacity = 0.0f;
+        //c.cameraResolutionWidth = 3094;     // Hololens 2 default resolution
+        //c.cameraResolutionHeight = 2196;    // Hololens 2 default resolution
+        c.cameraResolutionWidth = 640;
+        c.cameraResolutionHeight = 360;
+        c.pixelFormat = CapturePixelFormat.BGRA32;
+        Debug.Log("sw3 - " + sw.ElapsedMilliseconds + "ms");
+        captureObject.StartPhotoModeAsync(c, OnPhotoModeStarted);
+    }
 
-            // 3. PhotoMode 시작
-            captureObject.StartPhotoModeAsync(c, delegate (PhotoCapture.PhotoCaptureResult result) {
-                Debug.Log("sw4 - " + sw.ElapsedMilliseconds + "ms");
-                if (result.success)
-                {
-                    // 4. 실제 사진 촬영 수행
-                    photoCaptureObject.TakePhotoAsync(delegate (PhotoCapture.PhotoCaptureResult result2, PhotoCaptureFrame photoCaptureFrame) {
-                        if (result2.success)
-                        {
-                            // 5. 촬영된 사진 (photoCaptureFrame)을 texture에 보여주기
-                            Debug.Log("sw5 - " + sw.ElapsedMilliseconds + "ms");
+    void OnPhotoModeStarted(PhotoCapture.PhotoCaptureResult result)
+    {
+        if (result.success)
+        {
+            Debug.Log("sw4 - " + sw.ElapsedMilliseconds + "ms");
+            photoCaptureObject.TakePhotoAsync(OnCapturedPhotoToMemory);
+        }
+        else
+        {
+            Debug.LogError("Unable to start photo mode ...");
+        }
+    }
 
-                            Texture2D targetTexture = new Texture2D(900, 500);
+    void OnCapturedPhotoToMemory(PhotoCapture.PhotoCaptureResult result, PhotoCaptureFrame photoCaptureFrame)
+    {
+        if (result.success)
+        {
+            // 5. 촬영된 사진 (photoCaptureFrame)을 texture에 보여주기
+            Debug.Log("sw5 - " + sw.ElapsedMilliseconds + "ms");
 
-                            //Texture2D targetTexture = new Texture2D(3094, 2196);
-                            Debug.Log("sw6 - " + sw.ElapsedMilliseconds + "ms");
+            Texture2D targetTexture = new Texture2D(900, 500);
 
-                            photoCaptureFrame.UploadImageDataToTexture(targetTexture);
-                            Debug.Log("sw7 - " + sw.ElapsedMilliseconds + "ms");
+            //Texture2D targetTexture = new Texture2D(3094, 2196);
+            Debug.Log("sw6 - " + sw.ElapsedMilliseconds + "ms");
 
-                            RawImage ri = GameObject.Find("CapturedViewCanvas/RawImage").GetComponent<RawImage>();
-                            Debug.Log("sw8 - " + sw.ElapsedMilliseconds + "ms");
+            photoCaptureFrame.UploadImageDataToTexture(targetTexture);
+            Debug.Log("sw7 - " + sw.ElapsedMilliseconds + "ms");
 
-                            ri.texture = targetTexture;
-                            Debug.Log("sw9 - " + sw.ElapsedMilliseconds + "ms");
+            RawImage ri = GameObject.Find("CapturedViewCanvas/RawImage").GetComponent<RawImage>();
+            Debug.Log("sw8 - " + sw.ElapsedMilliseconds + "ms");
 
-                            sw.Stop();
-                        }
-                        photoCaptureObject.StopPhotoModeAsync(delegate (PhotoCapture.PhotoCaptureResult result3) {
-                            photoCaptureObject.Dispose();
-                            photoCaptureObject = null;
+            ri.texture = targetTexture;
+            Debug.Log("sw9 - " + sw.ElapsedMilliseconds + "ms");
 
-                            Thread.Sleep(100);
-                            TakePicture(prea);
-                        });
+            sw.Stop();
+        }
 
-                    });
-                }
-                else
-                    Debug.LogError("Unable to start photo mode...");
-            });
-        });
+        if (repeat)
+            photoCaptureObject.TakePhotoAsync(OnCapturedPhotoToMemory);
+        else
+            photoCaptureObject.StopPhotoModeAsync(OnStoppedPhotoMode);
 
     }
+
+    void OnStoppedPhotoMode(PhotoCapture.PhotoCaptureResult result)
+    {
+        photoCaptureObject.Dispose();
+        photoCaptureObject = null;
+    }
+
 
     // Update is called once per frame
     void Update()

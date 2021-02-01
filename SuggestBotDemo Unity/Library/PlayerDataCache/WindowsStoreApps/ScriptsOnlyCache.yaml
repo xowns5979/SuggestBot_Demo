@@ -5,9 +5,6 @@ ScriptsOnlyBuild:
     - HololensScreenShot
     - MRTK.Tutorials.AzureSpatialAnchors.DebugWindow
     - Microsoft.MixedReality.Toolkit.Examples.ShowHandJoint
-    Microsoft.MixedReality.Toolkit.Editor.Inspectors.dll:
-    - Microsoft.MixedReality.Toolkit.Editor.MixedRealityCameraProfileInspector
-    - Microsoft.MixedReality.Toolkit.Editor.MixedRealityToolkitConfigurationProfileInspector
     Microsoft.MixedReality.Toolkit.Editor.Utilities.dll:
     - Microsoft.MixedReality.Toolkit.Utilities.Editor.ProjectPreferences
     Microsoft.MixedReality.Toolkit.Examples.dll:
@@ -158,6 +155,8 @@ ScriptsOnlyBuild:
     - Class: 82
       Script: {instanceID: 0}
     - Class: 83
+      Script: {instanceID: 0}
+    - Class: 84
       Script: {instanceID: 0}
     - Class: 91
       Script: {instanceID: 0}
@@ -1586,7 +1585,7 @@ ScriptsOnlyBuild:
     className: DiagnosticsSystemVoiceControls
   - hash:
       serializedVersion: 2
-      Hash: 71bb6a6b6c8f052f948db64c7dd3ca4f
+      Hash: ca1a45ac54815ec730c39e47c65ffc4c
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: HololensScreenShot
